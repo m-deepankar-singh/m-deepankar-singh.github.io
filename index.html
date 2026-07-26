@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M Deepankar Singh — Inference Systems Engineer</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --panel: #12151c;
+    --panel-2: #171b24;
+    --border: #232833;
+    --text: #e8eaef;
+    --text-dim: #9aa3b2;
+    --text-faint: #626b7a;
+    --accent: #5eead4;
+    --accent-2: #a78bfa;
+    --accent-3: #fbbf24;
+    --mono: 'SFMono-Regular', ui-monospace, Menlo, Consolas, 'Liberation Mono', monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 64px 24px 100px; }
+
+  /* Header */
+  header { margin-bottom: 56px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+  h1 {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+    background: linear-gradient(120deg, #ffffff 30%, var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .role-title { font-size: 18px; color: var(--text-dim); margin-bottom: 20px; }
+  .links { display: flex; flex-wrap: wrap; gap: 18px; font-family: var(--mono); font-size: 13.5px; }
+  .links a { color: var(--text-dim); border-bottom: 1px solid transparent; }
+  .links a:hover { color: var(--accent); border-color: var(--accent); text-decoration: none; }
+
+  /* Pitch */
+  .pitch {
+    font-size: 17px;
+    color: var(--text);
+    max-width: 720px;
+    margin: 28px 0 0;
+    padding: 20px 24px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+  }
+  .pitch b { color: var(--accent-3); font-weight: 600; }
+
+  /* Metrics strip */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 36px 0 0;
+  }
+  .metric { background: var(--panel); padding: 20px 14px; text-align: center; }
+  .metric .num { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--accent); display: block; }
+  .metric .label { font-size: 11.5px; color: var(--text-faint); margin-top: 6px; display: block; }
+
+  /* Sections */
+  section { margin-top: 64px; }
+  .section-head {
+    display: flex; align-items: baseline; gap: 12px; margin-bottom: 24px;
+  }
+  .section-num { font-family: var(--mono); color: var(--text-faint); font-size: 13px; }
+  h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+
+  /* Featured project card */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+  .card.featured { border-color: rgba(94,234,212,0.35); box-shadow: 0 0 0 1px rgba(94,234,212,0.08), 0 12px 40px -12px rgba(94,234,212,0.15); }
+  .card-title { font-size: 19px; font-weight: 700; margin-bottom: 4px; }
+  .card-sub { font-family: var(--mono); font-size: 12.5px; color: var(--accent-2); margin-bottom: 14px; }
+  .card p { color: var(--text-dim); margin-bottom: 14px; font-size: 15px; }
+  .stat-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .stat {
+    font-family: var(--mono); font-size: 12.5px; color: var(--accent);
+    background: rgba(94,234,212,0.08); border: 1px solid rgba(94,234,212,0.25);
+    padding: 5px 10px; border-radius: 5px;
+  }
+  .bullets { list-style: none; }
+  .bullets li {
+    position: relative; padding-left: 20px; margin-bottom: 8px;
+    color: var(--text-dim); font-size: 14.5px;
+  }
+  .bullets li::before {
+    content: '▸'; position: absolute; left: 0; color: var(--accent-2);
+  }
+  .card-links { margin-top: 16px; display: flex; gap: 16px; font-family: var(--mono); font-size: 13px; }
+
+  /* Grid of smaller projects */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .metrics { grid-template-columns: 1fr 1fr; } }
+
+  /* Skills */
+  .skill-group { margin-bottom: 18px; }
+  .skill-group .g-label { font-family: var(--mono); font-size: 12px; color: var(--accent-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-family: var(--mono); font-size: 12.5px; color: var(--text-dim);
+    background: var(--panel-2); border: 1px solid var(--border);
+    padding: 5px 11px; border-radius: 999px;
+  }
+
+  /* Timeline */
+  .timeline-item { display: flex; gap: 20px; margin-bottom: 22px; }
+  .timeline-item .dates { font-family: var(--mono); font-size: 12px; color: var(--text-faint); width: 130px; flex-shrink: 0; padding-top: 3px; }
+  .timeline-item .content h3 { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+  .timeline-item .content .org { font-size: 13.5px; color: var(--text-dim); margin-bottom: 8px; }
+  .timeline-item .content p { font-size: 14px; color: var(--text-dim); }
+
+  footer {
+    margin-top: 72px; padding-top: 28px; border-top: 1px solid var(--border);
+    text-align: center; color: var(--text-faint); font-size: 13px; font-family: var(--mono);
+  }
+  footer a { color: var(--text-dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">// inference systems engineer</div>
+    <h1>M Deepankar Singh</h1>
+    <div class="role-title">I bring up and ship production LLM serving — including novel architectures with no existing path.</div>
+    <div class="links">
+      <a href="https://github.com/m-deepankar-singh" target="_blank">github.com/m-deepankar-singh</a>
+      <a href="https://linkedin.com/in/m-deepankar-singh" target="_blank">linkedin.com/in/m-deepankar-singh</a>
+      <a href="mailto:singh.deepankar39@gmail.com">singh.deepankar39@gmail.com</a>
+      <span>Bengaluru, India</span>
+    </div>
+
+    <div class="pitch">
+      Lead author of an upstream contribution to <b>AWS Neuron's</b> distributed inference framework
+      (<a href="https://github.com/aws-neuron/neuronx-distributed-inference/pull/173" target="_blank">PR #173</a>)
+      bringing a novel hybrid architecture (<b>Qwen 3.6-27B, DeltaNet + GQA</b>) to Trainium
+      <b>from zero</b> — custom kernels, hybrid recurrent + KV cache, selective FP8, 256K context.
+      Separately solo-shipped two production AI platforms serving <b>15,000+ users at 99.9% uptime</b>.
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><span class="num">18×</span><span class="label">prefix-cache TTFT speedup (PR #173)</span></div>
+      <div class="metric"><span class="num">256K</span><span class="label">token context, single Trainium chip</span></div>
+      <div class="metric"><span class="num">~2,200</span><span class="label">HF downloads, week one (OSS release)</span></div>
+      <div class="metric"><span class="num">99.9%</span><span class="label">uptime, 15,000+ users (production)</span></div>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-head"><span class="section-num">01</span><h2>Featured — AWS Neuron NxDI, PR #173</h2></div>
+    <div class="card featured">
+      <div class="card-title">Qwen 3.6-27B hybrid (DeltaNet + GQA) serving on AWS Trainium — from zero</div>
+      <div class="card-sub">Lead author · upstream contribution · ~57K LOC across 95 files</div>
+      <p>
+        Built an end-to-end serving path for a hybrid recurrent-attention architecture with no prior reference implementation.
+        Diagnosed a numerical-stability failure that only appeared on real hardware — passed unit tests, produced incoherent
+        tokens on-device — traced it to a chained coherence issue and fixed it with a direct triangular solve, trading ~18%
+        decode throughput for production correctness.
+      </p>
+      <div class="stat-row">
+        <span class="stat">3 custom NKI DeltaNet kernels</span>
+        <span class="stat">cold TTFT ↓3.8×</span>
+        <span class="stat">warm TTFT ↓16–18×</span>
+        <span class="stat">selective FP8</span>
+        <span class="stat">256K context</span>
+        <span class="stat">97.5% HF-greedy match</span>
+        <span class="stat">12.7K lines of tests</span>
+      </div>
+      <ul class="bullets">
+        <li>Framework-level contribution — modified NxDI core (async execution, attention base, model wrapper), not just a plug-in model</li>
+        <li>vLLM Neuron registry + OpenAI-compatible serving with SSE streaming and thinking-token injection</li>
+        <li>Shipped a multimodal (vision-language) path — vision encoder + text decoder with interleaved mRoPE</li>
+        <li>Full hardware validation on trn2.3xlarge (TP=4, LNC=2) with committed benchmark evidence</li>
+      </ul>
+      <div class="card-links">
+        <a href="https://github.com/aws-neuron/neuronx-distributed-inference/pull/173" target="_blank">→ View PR #173 on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">02</span><h2>Other inference-systems work</h2></div>
+    <div class="grid">
+      <div class="card">
+        <div class="card-title">GGUF → Safetensors + FP8 Serving</div>
+        <div class="card-sub">Open source · 2026</div>
+        <p>Reverse-engineered llama.cpp's GGUF weight transforms to unlock production vLLM serving for a GGUF-only model — validated at >0.9999 per-tensor correlation. Shipped FP8-quantized serving with speculative decoding reaching 135–185 tok/s at 262K context.</p>
+        <div class="stat-row">
+          <span class="stat">3–4× baseline throughput</span>
+          <span class="stat">~2,200 HF downloads / week 1</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">INFER — Multi-Tenant Inference Platform</div>
+        <div class="card-sub">Solo builder · 2026</div>
+        <p>Serverless GPU platform where many models share one GPU via a tiered-warmth ladder — sleeping in pinned host RAM at ~3% of GPU cost, waking in ~1 second. Built the multi-tenant slot manager, KV-cache persistence across sleep, and Spot-fleet elasticity with tested interruption failover.</p>
+        <div class="stat-row">
+          <span class="stat">40ms warm TTFT</span>
+          <span class="stat">~1.0s model wake</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Dual-Model Co-location — NVIDIA Blackwell</div>
+        <div class="card-sub">2026</div>
+        <p>Ran a 27B dense model and a 35B-A3B MoE model co-located on a single RTX Pro 6000 at NVFP4 via MPS GPU-sharing, served through vLLM OpenAI-compatible endpoints with use-case-based routing.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">MTP Speculative Decoding — Trainium Port</div>
+        <div class="card-sub">2026</div>
+        <p>Ported Multi-Token Prediction speculative decoding for Qwen 3.x on Trainium — ~2× decode throughput improvement, verified token-ID match against the non-speculative baseline.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">03</span><h2>Production systems in the wild</h2></div>
+    <div class="timeline-item">
+      <div class="dates">May 2024 –<br>Present</div>
+      <div class="content">
+        <h3>AI Product Engineer</h3>
+        <div class="org">Cultus Education &amp; Technology Services · Bengaluru</div>
+        <p>Solo-built and operate two production AI platforms (LMS + AI assessment) serving 15,000+ users at 99.9% uptime — self-hosted LLM inference on NVIDIA GPUs with use-case-based routing between a fast MoE model and a long-context dense model, scaled on Kubernetes. Cut the acquired platform's monthly operating costs ~90%.</p>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="dates">Nov 2022 –<br>Apr 2024</div>
+      <div class="content">
+        <h3>Software Engineer</h3>
+        <div class="org">I-RAY IT Solutions · Hyderabad</div>
+        <p>Built a multimodal financial-document analysis platform (GPT-4 Vision + LlamaIndex + LangChain) and an HR recruiter portal using the OpenAI API for automated resume interpretation and candidate screening.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">04</span><h2>Technical depth</h2></div>
+    <div class="skill-group">
+      <div class="g-label">LLM Inference &amp; Serving</div>
+      <div class="chip-row">
+        <span class="chip">vLLM</span><span class="chip">SGLang</span><span class="chip">TensorRT-LLM</span>
+        <span class="chip">OpenAI-compatible serving</span><span class="chip">SSE streaming</span>
+        <span class="chip">NKI (AWS Neuron Kernel Interface)</span><span class="chip">Prefix Caching (APC)</span>
+        <span class="chip">KV-cache &amp; hybrid recurrent-state mgmt</span><span class="chip">Speculative Decoding (MTP)</span>
+        <span class="chip">Tensor Parallelism</span><span class="chip">PagedAttention</span><span class="chip">FlashAttention</span>
+        <span class="chip">Multimodal (VLM) serving</span>
+      </div>
+    </div>
+    <div class="skill-group">
+      <div class="g-label">Kernels &amp; Optimization</div>
+      <div class="chip-row">
+        <span class="chip">Custom NKI kernel authoring</span><span class="chip">DeltaNet / linear-attention kernels</span>
+        <span class="chip">Quantization: FP8 · NVFP4 · AWQ-INT4</span><span class="chip">Numerical-stability tradeoffs</span>
+        <span class="chip">Hardware profiling &amp; validation (Trainium, Blackwell)</span>
+      </div>
+    </div>
+    <div class="skill-group">
+      <div class="g-label">Production &amp; Stack</div>
+      <div class="chip-row">
+        <span class="chip">Python</span><span class="chip">TypeScript</span><span class="chip">Next.js 15</span>
+        <span class="chip">PostgreSQL</span><span class="chip">Redis</span><span class="chip">Docker</span>
+        <span class="chip">AWS (Trainium / Inferentia / EC2 GPU)</span><span class="chip">NVIDIA Blackwell</span>
+        <span class="chip">RAG</span><span class="chip">Agent orchestration (AutoGen)</span>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div>M Deepankar Singh — Bengaluru, India · <a href="mailto:singh.deepankar39@gmail.com">singh.deepankar39@gmail.com</a> · <a href="https://github.com/m-deepankar-singh" target="_blank">GitHub</a> · <a href="https://linkedin.com/in/m-deepankar-singh" target="_blank">LinkedIn</a></div>
+  </footer>
+
+</div>
+</body>
+</html>
