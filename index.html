@@ -36,11 +36,11 @@
         <span class="toc-no">CASE STUDY № 1</span>
         <div class="toc-title">Bringing a hybrid DeltaNet model to AWS Trainium — with no reference implementation</div>
         <p class="toc-abs">
-          An upstream contribution to AWS Neuron's inference framework: three custom kernels,
-          a numerical-stability failure that only appeared on real hardware, and the serving
-          path that made 256K context possible on a single chip.
+          An upstream contribution to AWS Neuron's inference framework: three custom NKI kernels,
+          a numerical failure that passed every unit test and still emitted garbage on hardware,
+          and a prefix cache that had to teach vLLM what recurrent state is.
         </p>
-        <div class="toc-stats">PR #173 · ~57K LOC · 18× TTFT · 256K context</div>
+        <div class="toc-stats">PR #173 · ~57K LOC · 3.84× prefill · 97.5% greedy match · 256K context</div>
       </a>
       <a class="toc-item" href="infer.html">
         <span class="toc-no">CASE STUDY № 2</span>
@@ -65,8 +65,9 @@
       </li>
       <li>
         <span class="t">MTP speculative decoding, ported to Trainium.</span>
-        <span class="d">~2× decode throughput for Qwen 3.x, verified token-ID match against the
-        non-speculative baseline.</span>
+        <span class="d">1.6× decode throughput on a standalone NxDI server — 44–48 tok/s against a
+        ~27 tok/s baseline at speculation length 2 — with API validation across streaming,
+        stop strings, and deterministic repeat.</span>
       </li>
       <li>
         <span class="t">Dual-model co-location on NVIDIA Blackwell.</span>
