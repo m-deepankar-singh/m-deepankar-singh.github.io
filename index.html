@@ -3,46 +3,80 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>M Deepankar Singh</title>
-<meta name="description" content="Inference systems engineer. Production LLM serving on AWS Trainium and NVIDIA GPUs.">
+<title>M Deepankar Singh — Inference Systems</title>
+<meta name="description" content="Inference systems engineer. Case studies in production LLM serving: AWS Trainium bring-up, multi-tenant GPU platforms, quantization.">
 <link rel="stylesheet" href="styles.css">
 <script src="theme.js"></script>
 </head>
 <body>
 
-<nav>
-  <div class="nav-inner">
-    <a class="nav-name" href="index.html">M Deepankar Singh</a>
-    <div class="nav-links">
-      <a href="work.html">Work</a>
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="name" href="index.html">M&nbsp;Deepankar&nbsp;Singh</a>
+    <nav>
+      <a href="index.html" class="active">Index</a>
       <a href="about.html">About</a>
-      <button id="theme-toggle" type="button">dark</button>
-    </div>
+      <button id="theme-toggle" type="button">Dark</button>
+    </nav>
   </div>
-</nav>
+</header>
 
 <main>
   <div class="wrap">
 
-    <h1>Inference systems engineer.</h1>
-
-    <p>
-      I ship production LLM serving — including novel architectures with no existing path.
+    <div class="article-kicker">Case studies in inference systems</div>
+    <h1>Production LLM serving, from silicon to API.</h1>
+    <p class="cover-role">
+      I bring up and ship LLM serving — including novel architectures with no existing path.
+      Two engineering accounts follow, with measured results.
     </p>
 
-    <p>
-      Lead author of <a href="https://github.com/aws-neuron/neuronx-distributed-inference/pull/173" target="_blank" rel="noopener">AWS Neuron PR&nbsp;#173</a>:
-      Qwen 3.6-27B hybrid serving on Trainium, built from zero — custom kernels, selective FP8,
-      256K context, 18× TTFT speedup.
-    </p>
+    <div class="toc">
+      <a class="toc-item" href="deltanet-trainium.html">
+        <span class="toc-no">CASE STUDY № 1</span>
+        <div class="toc-title">Bringing a hybrid DeltaNet model to AWS Trainium — with no reference implementation</div>
+        <p class="toc-abs">
+          An upstream contribution to AWS Neuron's inference framework: three custom kernels,
+          a numerical-stability failure that only appeared on real hardware, and the serving
+          path that made 256K context possible on a single chip.
+        </p>
+        <div class="toc-stats">PR #173 · ~57K LOC · 18× TTFT · 256K context</div>
+      </a>
+      <a class="toc-item" href="infer.html">
+        <span class="toc-no">CASE STUDY № 2</span>
+        <div class="toc-title">INFER: a serverless platform where sleeping models wake in one second</div>
+        <p class="toc-abs">
+          A multi-tenant GPU platform built on a tiered-warmth ladder — models sleep in pinned
+          host RAM at ~3% of GPU cost, wake in ~1s, and survive Spot interruptions with a
+          tested failover state machine.
+        </p>
+        <div class="toc-stats">solo build · 40ms warm TTFT · ~1.0s wake · 210s → 12.7s</div>
+      </a>
+    </div>
 
-    <p class="dim">
-      Currently at Cultus, running self-hosted LLM inference for 15,000+ users at 99.9% uptime.
-      Open to LLM inference and AI infrastructure roles.
-    </p>
+    <h2 style="margin-top:56px">Selected shorter work</h2>
+    <ul class="brief-list">
+      <li>
+        <span class="t">GGUF → safetensors conversion + FP8 serving.</span>
+        <span class="d">Reverse-engineered llama.cpp's weight transforms to unlock vLLM serving for a
+        GGUF-only 27B model — validated at &gt;0.9999 per-tensor correlation; 135–185 tok/s at 262K context;
+        ~2,200 Hugging Face downloads in week one.</span>
+      </li>
+      <li>
+        <span class="t">MTP speculative decoding, ported to Trainium.</span>
+        <span class="d">~2× decode throughput for Qwen 3.x, verified token-ID match against the
+        non-speculative baseline.</span>
+      </li>
+      <li>
+        <span class="t">Dual-model co-location on NVIDIA Blackwell.</span>
+        <span class="d">27B dense + 35B MoE on a single RTX Pro 6000 at NVFP4 via MPS GPU-sharing,
+        with use-case-based routing.</span>
+      </li>
+    </ul>
 
-    <p>
-      <a href="work.html">Work</a> · <a href="about.html">About</a> ·
+    <p class="dim" style="margin-top:36px">
+      Currently AI Product Engineer at Cultus — self-hosted LLM inference in production for
+      15,000+ users at 99.9% uptime. Open to LLM inference and AI infrastructure roles. —
       <a href="https://github.com/m-deepankar-singh" target="_blank" rel="noopener">GitHub</a> ·
       <a href="https://linkedin.com/in/m-deepankar-singh" target="_blank" rel="noopener">LinkedIn</a> ·
       <a href="mailto:singh.deepankar39@gmail.com">Email</a>
@@ -54,7 +88,7 @@
 <footer>
   <div class="wrap">
     <span>Bengaluru, India</span>
-    <span>© 2026</span>
+    <span>© 2026 M Deepankar Singh</span>
   </div>
 </footer>
 

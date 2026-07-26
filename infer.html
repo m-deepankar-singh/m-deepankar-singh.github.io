@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INFER: sleeping models that wake in one second — M Deepankar Singh</title>
+<meta name="description" content="Case study: a serverless multi-tenant LLM inference platform built on a tiered-warmth ladder — ~1s model wake, 40ms warm TTFT, tested Spot failover.">
+<link rel="stylesheet" href="styles.css">
+<script src="theme.js"></script>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="name" href="index.html">M&nbsp;Deepankar&nbsp;Singh</a>
+    <nav>
+      <a href="index.html">Index</a>
+      <a href="about.html">About</a>
+      <button id="theme-toggle" type="button">Dark</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <div class="article-kicker"><span class="no">Case study № 2</span> · Serverless inference</div>
+    <h1>INFER: a serverless platform where sleeping models wake in one second</h1>
+    <div class="article-meta">
+      solo builder · 2026 · multi-tenant L40S GPUs · EC2 Spot fleets
+    </div>
+
+    <p class="abstract">
+      Commercial serverless GPU endpoints pay for cold starts in minutes. INFER is a
+      Modal/RunPod-style platform built around a different bet: many models sharing one GPU,
+      sleeping in pinned host RAM at <b>~3% of GPU cost</b>, and waking in <b>~1 second</b>.
+      This is how the ladder works — and how it survives losing its hardware.
+    </p>
+
+    <h2><span class="sec-no">1</span>The tiered-warmth ladder</h2>
+    <p>
+      The core mechanism is vLLM sleep mode, which uses CUDA virtual-memory-management to
+      offload model weights out of VRAM without tearing down the process. INFER turns that
+      primitive into a two-tier ladder: <strong>T0</strong>, awake in VRAM and serving; and
+      <strong>T1</strong>, weights parked in pinned host RAM. Demotion to T1 releases the GPU
+      for other tenants; promotion back is a memory copy, not a model load.
+    </p>
+
+    <figure>
+      <div class="fig-panel">
+        <svg viewBox="0 0 640 214" role="img" aria-label="Tier ladder diagram">
+          <text x="320" y="16" text-anchor="middle" font-size="11" fill="var(--ink-2)">← wake ~1.0 s</text>
+          <rect x="30" y="28" width="255" height="70" rx="4" fill="var(--chart-accent)" fill-opacity="0.1" stroke="var(--chart-accent)" stroke-width="1.4"/>
+          <text x="157" y="56" text-anchor="middle" font-size="14" fill="var(--ink)">T0 — awake</text>
+          <text x="157" y="76" text-anchor="middle" font-size="10" fill="var(--ink-2)">in VRAM · serving · 40ms warm TTFT</text>
+          <rect x="355" y="28" width="255" height="70" rx="4" fill="none" stroke="var(--ink-3)" stroke-width="1.2"/>
+          <text x="482" y="56" text-anchor="middle" font-size="14" fill="var(--ink)">T1 — asleep</text>
+          <text x="482" y="76" text-anchor="middle" font-size="10" fill="var(--ink-2)">in pinned host RAM · ~3% of GPU cost</text>
+          <!-- arrows -->
+          <path d="M355 48 H298" stroke="var(--ink-2)" stroke-width="1.4" fill="none"/>
+          <path d="M298 48 l7 -4 v8 Z" fill="var(--ink-2)"/>
+          <path d="M285 78 H342" stroke="var(--ink-2)" stroke-width="1.4" fill="none"/>
+          <path d="M342 78 l-7 -4 v8 Z" fill="var(--ink-2)"/>
+          <text x="320" y="112" text-anchor="middle" font-size="11" fill="var(--ink-2)">idle demotion →</text>
+          <!-- bottom -->
+          <line x1="157" y1="98" x2="157" y2="130" stroke="var(--ink-3)" stroke-width="1.2"/>
+          <rect x="30" y="130" width="580" height="44" rx="4" fill="none" stroke="var(--ink-3)" stroke-width="1.2"/>
+          <text x="320" y="150" text-anchor="middle" font-size="12" fill="var(--ink)">multi-tenant slot manager (FastAPI)</text>
+          <text x="320" y="166" text-anchor="middle" font-size="10" fill="var(--ink-2)">VRAM budgeting · RAM admission · cohort wake scheduling · per-second billing</text>
+          <text x="320" y="200" text-anchor="middle" font-size="11" fill="var(--ink-3)">shared L40S GPUs · EC2 Spot fleet with tested interruption failover</text>
+        </svg>
+      </div>
+      <figcaption><span class="fig-no">Fig. 1</span> — The tiered-warmth ladder. Waking a model is a
+      pinned-RAM → VRAM copy, not a cold model load — minutes become one second.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="fig-panel">
+        <div class="fig-title">Request latency by state (ms, measured)</div>
+        <svg viewBox="0 0 640 150" role="img" aria-label="Warm request 40ms, model wake about 1000ms, contended swap 1300 to 1700ms">
+          <!-- scale: 1700ms -> 470px; x0=150 -->
+          <line x1="150" y1="16" x2="150" y2="118" stroke="var(--chart-grid)" stroke-width="1"/>
+          <!-- warm 40ms -> 11px -->
+          <path d="M150 20 h7 q4,0 4,4 v16 q0,4 -4,4 h-7 Z" fill="var(--chart-accent)"/>
+          <text x="146" y="37" text-anchor="end" font-size="12" fill="var(--ink)">warm request (T0)</text>
+          <text x="167" y="37" font-size="12" fill="var(--ink)">40 ms</text>
+          <!-- wake 1000ms -> 276px -->
+          <path d="M150 56 h272 q4,0 4,4 v16 q0,4 -4,4 h-272 Z" fill="var(--chart-accent)"/>
+          <text x="146" y="73" text-anchor="end" font-size="12" fill="var(--ink)">model wake (T1→T0)</text>
+          <text x="432" y="73" font-size="12" fill="var(--ink)">~1.0 s (p95 1.01)</text>
+          <!-- swap 1700 -> 470px -->
+          <path d="M150 92 h466 q4,0 4,4 v16 q0,4 -4,4 h-466 Z" fill="var(--chart-accent)" fill-opacity="0.55"/>
+          <text x="146" y="109" text-anchor="end" font-size="12" fill="var(--ink)">contended swap</text>
+          <text x="612" y="86" text-anchor="end" font-size="12" fill="var(--ink)">1.3–1.7 s</text>
+        </svg>
+        <figcaption style="margin-top:6px"><span class="fig-no">Fig. 2</span> — The latency ladder on shared
+        L40S GPUs. Commercial serverless endpoints cold-start the same models in minutes.</figcaption>
+      </div>
+    </figure>
+
+    <h2><span class="sec-no">2</span>The slot manager</h2>
+    <p>
+      Sharing GPUs safely is a scheduling problem. The slot manager (FastAPI) owns it:
+      per-GPU VRAM budgeting with auto-sizing, RAM admission control so T1 never overcommits
+      host memory, idle demotion, and per-second tiered billing meters.
+    </p>
+    <p>
+      The hardest scheduling case was the thundering herd: 24 simultaneous requests to
+      sleeping models produced a 210-second contention storm as wakes fought over VRAM.
+      Cohort wake scheduling — batching wakes into cohorts instead of racing them — cut the
+      same storm to 12.7 seconds.
+    </p>
+
+    <figure>
+      <div class="fig-panel">
+        <div class="fig-title">24-request contention storm, time to drain (s)</div>
+        <svg viewBox="0 0 640 130" role="img" aria-label="Contention storm 210 seconds before, 12.7 seconds after">
+          <line x1="150" y1="14" x2="150" y2="100" stroke="var(--chart-grid)" stroke-width="1"/>
+          <!-- before 210s -> 460px -->
+          <path d="M150 20 h456 q4,0 4,4 v16 q0,4 -4,4 h-456 Z" fill="var(--chart-mute)"/>
+          <text x="146" y="37" text-anchor="end" font-size="12" fill="var(--ink)">racing wakes</text>
+          <text x="602" y="14" text-anchor="end" font-size="12" fill="var(--ink)">210 s</text>
+          <!-- after 12.7 -> 28px -->
+          <path d="M150 60 h24 q4,0 4,4 v16 q0,4 -4,4 h-24 Z" fill="var(--chart-accent)"/>
+          <text x="146" y="77" text-anchor="end" font-size="12" fill="var(--ink)">cohort scheduling</text>
+          <text x="186" y="77" font-size="12" fill="var(--ink)">12.7 s</text>
+        </svg>
+        <figcaption style="margin-top:6px"><span class="fig-no">Fig. 3</span> — Cohort wake scheduling vs
+        uncoordinated wakes under a 24-request storm: 16× faster drain.</figcaption>
+      </div>
+    </figure>
+
+    <h2><span class="sec-no">3</span>Keeping the KV cache across sleep</h2>
+    <p>
+      Waking fast is wasted if the model wakes amnesiac. With LMCache, KV state persists
+      across sleep: at 4.8K context, restoring a prefix takes 130ms against 500ms to
+      recompute it. The gateway above all of this is OpenAI-compatible — a drop-in
+      <code style="font-family:var(--mono);font-size:15px">base_url</code> swap — with SSE
+      streaming, a dynamic worker registry, request observability, and a durable append-only
+      usage ledger.
+    </p>
+
+    <h2><span class="sec-no">4</span>Surviving the loss of the hardware</h2>
+    <p>
+      The fleet runs on EC2 Spot for cost, which means the platform must assume its GPUs can
+      vanish with two minutes' notice. A custom controller launches diversified instant Spot
+      Fleets from a slim self-provisioning AMI — boot to serving in ~3 minutes — and scales
+      to zero when idle. Interruptions are handled by a tested state machine: an IMDS watcher
+      catches the reclaim notice, tenants evacuate in ~2 seconds, traffic falls back to
+      On-Demand capacity, and the controller automatically reclaims Spot when it returns.
+    </p>
+
+    <div class="pull">
+      <span class="big">40 ms · ~1.0 s · ~3%</span>
+      <span class="cap">warm TTFT · model wake · idle cost vs GPU</span>
+    </div>
+
+    <div class="next-article">
+      <span class="lbl">Previous — Case study № 1</span><br>
+      <a href="deltanet-trainium.html">Bringing a hybrid DeltaNet model to AWS Trainium →</a>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span><a href="index.html">← Index</a></span>
+    <span>© 2026 M Deepankar Singh</span>
+  </div>
+</footer>
+
+</body>
+</html>

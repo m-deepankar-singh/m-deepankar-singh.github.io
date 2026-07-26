@@ -10,59 +10,73 @@
 </head>
 <body>
 
-<nav>
-  <div class="nav-inner">
-    <a class="nav-name" href="index.html">M Deepankar Singh</a>
-    <div class="nav-links">
-      <a href="work.html">Work</a>
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="name" href="index.html">M&nbsp;Deepankar&nbsp;Singh</a>
+    <nav>
+      <a href="index.html">Index</a>
       <a href="about.html" class="active">About</a>
-      <button id="theme-toggle" type="button">dark</button>
-    </div>
+      <button id="theme-toggle" type="button">Dark</button>
+    </nav>
   </div>
-</nav>
+</header>
 
 <main>
   <div class="wrap">
 
-    <h1>About</h1>
+    <div class="article-kicker">About the author</div>
+    <h1>Comfortable with ambiguity, novel stacks, and shipping in weeks not quarters.</h1>
 
+    <p class="abstract">
+      Inference-systems engineer in Bengaluru, India. I work at the level where models meet
+      silicon — kernels, caches, quantization, serving stacks — and at the level where they
+      meet users: two production AI platforms, built and operated solo.
+    </p>
+
+    <h2><span class="sec-no">1</span>Experience</h2>
     <p>
-      Comfortable with ambiguity, novel stacks, and shipping in weeks not quarters.
+      <strong>AI Product Engineer, Cultus Education &amp; Technology</strong>
+      <span style="font-family:var(--mono);font-size:13px;color:var(--ink-3)"> · May 2024 – present · Bengaluru</span><br>
+      Built an LMS platform that was acquired by Cultus and rebranded Cultus Skills Center,
+      cutting its monthly operating costs ~90%. Went on to solo-build Cultus Drona (AI
+      assessment) and operate both in production: 15,000+ users, 99.9% uptime, sub-200ms p95
+      API latency. Self-hosted LLM inference on NVIDIA GPUs — a fast MoE model and a
+      long-context dense model behind use-case-based routing, scaled on Kubernetes — plus a
+      video-interview analysis pipeline processing 100+ interviews a week and RAG-based
+      adaptive learning with automated grading.
+    </p>
+    <p>
+      <strong>Software Engineer, I-RAY IT Solutions</strong>
+      <span style="font-family:var(--mono);font-size:13px;color:var(--ink-3)"> · Nov 2022 – Apr 2024 · Hyderabad</span><br>
+      Built a multimodal financial-document analysis platform for an enterprise customer
+      (GPT-4 Vision, LlamaIndex, LangChain) and an HR recruiter portal on the OpenAI API for
+      automated resume interpretation and candidate screening.
     </p>
 
-    <h2>Experience</h2>
-
-    <div class="entry">
-      <h3>AI Product Engineer, Cultus</h3><span class="meta">2024 – present</span>
-      <p>
-        Solo-built and operate two production AI platforms — <b>15,000+ users, 99.9% uptime</b>.
-        Self-hosted LLM inference on NVIDIA GPUs, scaled on Kubernetes. Cut operating costs ~90%.
-      </p>
-    </div>
-
-    <div class="entry">
-      <h3>Software Engineer, I-RAY IT Solutions</h3><span class="meta">2022 – 2024</span>
-      <p>
-        Multimodal financial-document analysis (GPT-4 Vision, LlamaIndex, LangChain) and an
-        AI recruiter portal on the OpenAI API.
-      </p>
-    </div>
-
-    <h2>Skills</h2>
-
+    <h2><span class="sec-no">2</span>Skills</h2>
     <p class="dim">
-      vLLM · SGLang · TensorRT-LLM · custom NKI kernels · FP8 / NVFP4 quantization ·
-      speculative decoding · prefix caching · Python · TypeScript · Kubernetes · AWS
+      <strong style="color:var(--ink)">Inference &amp; serving.</strong> vLLM · SGLang · TensorRT-LLM ·
+      OpenAI-compatible serving · SSE streaming · NKI (AWS Neuron Kernel Interface) · prefix caching ·
+      KV-cache &amp; hybrid recurrent-state management · speculative decoding · tensor parallelism ·
+      PagedAttention · FlashAttention · multimodal serving
     </p>
-
-    <h2>Education</h2>
-
     <p class="dim">
-      B.Tech, Computer Science — Swami Vivekananda Institute of Technology
+      <strong style="color:var(--ink)">Kernels &amp; optimization.</strong> Custom NKI kernel authoring
+      (DeltaNet / linear attention, chunked/fused) · FP8 / NVFP4 / AWQ-INT4 quantization ·
+      numerical-stability tradeoffs · profiling and hardware validation on Trainium trn2 and NVIDIA Blackwell
+    </p>
+    <p class="dim">
+      <strong style="color:var(--ink)">Production systems.</strong> Multi-stage LLM pipelines ·
+      structured-output validation · observability · RAG · agent orchestration (AutoGen) ·
+      Python · TypeScript · Next.js · PostgreSQL · Redis · Docker · Kubernetes · AWS
     </p>
 
-    <h2>Contact</h2>
+    <h2><span class="sec-no">3</span>Education</h2>
+    <p class="dim">
+      B.Tech, Computer Science — Swami Vivekananda Institute of Technology, Telangana, India
+    </p>
 
+    <h2><span class="sec-no">4</span>Contact</h2>
     <p>
       <a href="mailto:singh.deepankar39@gmail.com">singh.deepankar39@gmail.com</a> ·
       <a href="https://github.com/m-deepankar-singh" target="_blank" rel="noopener">GitHub</a> ·
@@ -74,8 +88,8 @@
 
 <footer>
   <div class="wrap">
-    <span><a href="work.html">← Work</a></span>
-    <span>© 2026</span>
+    <span><a href="index.html">← Index</a></span>
+    <span>© 2026 M Deepankar Singh</span>
   </div>
 </footer>
 
