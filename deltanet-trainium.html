@@ -346,6 +346,17 @@
       right-sized buckets are a measured lever, not a mystery.</figcaption>
     </figure>
 
+    <p>
+      That absolute rate is not a ceiling, and I want to be clear that it is not the
+      number this work optimized. Right-sized generation buckets are a measured lever
+      rather than a mystery, and two further levers sit untouched in front of it:
+      speculative decoding — which I have ported to Trainium separately, on a different
+      artifact and at a different configuration — and DFlash. Neither was applied to the
+      artifact benchmarked here. I moved onto other work before taking them, so the honest
+      description of this decode curve is that its <em>shape</em> is the validated
+      result and its <em>height</em> is unfinished business.
+    </p>
+
     <h2><span class="sec-no">8</span>What is validated, and what isn't</h2>
     <p>
       Against Hugging Face greedy decoding, the implementation matched <strong>156 of 160
