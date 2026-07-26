@@ -47,15 +47,15 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .masthead { border-bottom: 2px solid var(--ink); }
 .masthead-inner {
   max-width: 680px; margin: 0 auto; padding: 26px 24px 14px;
-  display: flex; align-items: baseline; gap: 18px;
+  display: flex; align-items: baseline; gap: 10px 18px; flex-wrap: wrap;
 }
 .masthead .name {
   font-variant: small-caps; letter-spacing: 0.06em;
   font-size: 19px; font-weight: 700; color: var(--ink);
-  margin-right: auto;
+  margin-right: auto; min-width: 0;
 }
 .masthead .name:hover { text-decoration: none; color: var(--accent); }
-.masthead nav { display: flex; gap: 16px; align-items: baseline; }
+.masthead nav { display: flex; gap: 16px; align-items: baseline; flex-shrink: 0; }
 .masthead nav a { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.08em; }
 .masthead nav a.active, .masthead nav a:hover { color: var(--ink); text-decoration: none; }
 #theme-toggle {
@@ -160,9 +160,48 @@ footer a { color: var(--ink-2); }
 .next-article a { font-size: 19px; font-weight: 700; color: var(--ink); }
 .next-article a:hover { color: var(--accent); text-decoration: none; }
 
+/* ---------- inline code block ---------- */
+.codeblock {
+  margin: 20px 0; font-family: var(--mono); line-height: 1.7;
+  color: var(--ink-2); font-size: clamp(11px, 3.1vw, 13.5px);
+  overflow-wrap: anywhere;
+}
+.codeblock .ind { padding-left: 2.6em; }
+.codeblock b { font-weight: 400; color: var(--ink); }
+
+/* ---------- results at a glance ---------- */
+.glance {
+  border: 1px solid var(--rule); border-radius: 4px; background: var(--paper-2);
+  padding: 16px 18px 6px; margin: 0 0 34px;
+}
+.glance-hd {
+  font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
+  text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px;
+}
+.glance dl { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; }
+.glance dl > div { padding-bottom: 12px; }
+.glance dt {
+  font-family: var(--sans); font-size: 25px; font-weight: 650;
+  letter-spacing: -0.02em; line-height: 1.15; color: var(--ink);
+}
+.glance dd {
+  font-family: var(--mono); font-size: 11.5px; line-height: 1.5;
+  color: var(--ink-2); margin-top: 4px;
+}
+
+/* ---------- narrow viewports ---------- */
 @media (max-width: 540px) {
   body { font-size: 17px; }
   main { padding: 40px 0 56px; }
-  .masthead-inner { padding: 20px 24px 12px; }
+  .masthead-inner { padding: 20px 20px 12px; gap: 8px 14px; }
+  .wrap { padding: 0 20px; }
   .pull .big { font-size: 34px; }
+  .glance dl { grid-template-columns: 1fr; }
+  .glance dt { font-size: 23px; }
+}
+@media (max-width: 420px) {
+  .masthead .name { font-size: 17px; }
+  .masthead nav { gap: 14px; }
+  h1 { font-size: 27px; }
+  .fig-row > div { min-width: 0; flex-basis: 100%; }
 }

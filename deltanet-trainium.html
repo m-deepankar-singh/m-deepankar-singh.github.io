@@ -25,20 +25,30 @@
   <div class="wrap">
 
     <div class="article-kicker"><span class="no">Case study № 1</span> · AWS Neuron NxDI</div>
-    <h1>Bringing a hybrid DeltaNet model to AWS Trainium — with no reference implementation</h1>
+    <h1>Bringing Qwen 3.6’s hybrid DeltaNet architecture to AWS Trainium — with no existing NxDI reference implementation</h1>
     <div class="article-meta">
       lead author · upstream contribution ·
       <a href="https://github.com/aws-neuron/neuronx-distributed-inference/pull/173" target="_blank" rel="noopener">PR&nbsp;#173</a>
-      · ~57K LOC across 95 files · validated on trn2.3xlarge, TP=4, LNC=2, Neuron SDK 2.29
+      · +58,329 / −300 across 102 files · validated on trn2.3xlarge, TP=4, LNC=2, Neuron SDK 2.29
     </div>
 
     <p class="abstract">
       Qwen 3.6-27B is a hybrid: 48 Gated DeltaNet recurrent layers interleaved with 16 GQA
-      attention layers. No serving path existed for it on AWS Trainium — not in the framework,
-      not anywhere. This is the account of building one from zero: three custom NKI kernels, a
-      numerical failure that passed every unit test and still emitted garbage on hardware, and
-      a caching design that had to teach vLLM what recurrent state <b>is</b>.
+      attention layers. NxDI had no serving path for that shape, and no Trainium reference
+      implementation existed to port from. This is the account of building one: three custom
+      NKI kernels, a numerical failure that passed every unit test and still emitted garbage
+      end-to-end, and a caching design that had to teach vLLM what recurrent state <b>is</b>.
     </p>
+
+    <div class="glance">
+      <div class="glance-hd">Results at a glance</div>
+      <dl>
+        <div><dt>2,394.6 tok/s</dt><dd>prefill at 16K context — 3.84× over internal baseline</dd></div>
+        <div><dt>7.39 tok/s</dt><dd>decode at a 65,506-token prompt — 3% below the 11-token rate</dd></div>
+        <div><dt>97.5%</dt><dd>token agreement vs Hugging Face greedy decoding (156/160)</dd></div>
+        <div><dt>256K</dt><dd>context executed on one trn2.3xlarge — prefill plus coherent opening segment</dd></div>
+      </dl>
+    </div>
 
     <h2><span class="sec-no">1</span>Why a hybrid breaks the framework</h2>
     <p>
@@ -94,11 +104,13 @@
     <h2><span class="sec-no">2</span>Three kernels for DeltaNet</h2>
     <p>
       DeltaNet's recurrence maps onto nothing in Neuron's kernel library, so I wrote three
-      custom NKI kernels — basic, chunked, and fused. Prompt ingestion runs a chunked parallel
-      form of the recurrence; decode runs the one-token form. The fused variant is the
-      interesting one: it keeps the recurrent state resident in SBUF (on-chip memory) across
-      chunks and computes cumulative decay in-kernel, rather than round-tripping state through
-      HBM between chunks.
+      custom NKI kernels: a <strong>recurrent decode</strong> kernel running the one-token
+      form, a <strong>per-chunk reference</strong> kernel that computes the chunked parallel
+      recurrence one chunk at a time and served as the correctness oracle, and a
+      <strong>fused context-encoding</strong> kernel for prompt ingestion. The fused variant
+      is the interesting one: it keeps the recurrent state resident in SBUF (on-chip memory)
+      across chunks and computes cumulative decay in-kernel, rather than round-tripping state
+      through HBM between chunks.
     </p>
     <p>
       The first correct hardware baseline — BF16, 64K context, chunked prefill, FP32 recurrent
@@ -108,7 +120,7 @@
       context is a correctness signal, not a performance one.
     </p>
 
-    <h2><span class="sec-no">3</span>The bug that only existed on hardware</h2>
+    <h2><span class="sec-no">3</span>The failure that only became visible end-to-end on hardware</h2>
     <p>
       The fused kernel repeatedly emitted <code style="font-family:var(--mono);font-size:15px">!!!!</code>
       or incoherent text while simpler chunked paths worked. Three candidate causes had to be
@@ -162,11 +174,12 @@
       state as a <strong>prefix-boundary checkpoint</strong>, and a prefix is reusable only at
       the intersection of three independent hits:
     </p>
-    <div class="fig-panel" style="margin: 20px 0; font-family: var(--mono); font-size: 13.5px; line-height: 1.7; color: var(--ink-2)">
-      usable_prefix = min(<span style="color:var(--ink)">attention_KV_hit</span>,<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--ink)">GDN_recurrent_checkpoint_hit</span>,<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--ink)">GDN_convolution_checkpoint_hit</span>,<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--ink)">request_prompt_length</span>)
+    <div class="fig-panel codeblock">
+      <div>usable_prefix = min(</div>
+      <div class="ind"><b>attention_KV_hit</b>,</div>
+      <div class="ind"><b>GDN_recurrent_checkpoint_hit</b>,</div>
+      <div class="ind"><b>GDN_convolution_checkpoint_hit</b>,</div>
+      <div class="ind"><b>request_prompt_length</b>)</div>
     </div>
     <p>
       Getting there meant fixing a long tail of things that only surface under real scheduling:
@@ -271,8 +284,10 @@
           </div>
         </div>
       </div>
-      <figcaption><span class="fig-no">Fig. 2</span> — Native chunked prefill against the internal baseline,
-      16,374-token prompt on trn2.3xlarge (TP=4, LNC=2). Measured 3.84× on throughput.</figcaption>
+      <figcaption><span class="fig-no">Fig. 2</span> — Baseline is the BF16 chunked-prefill artifact at
+      622.996 tok/s; current is the coherent 256K-capable native-chunk build (selective FP8 weights,
+      BF16 KV and LM head, FP32 DeltaNet recurrent state) at 2,394.6 tok/s. Same 16,374-token prompt,
+      same trn2.3xlarge (TP=4, LNC=2, Neuron SDK 2.29), batch 1. Measured 3.84× on throughput.</figcaption>
     </figure>
 
     <p>
@@ -341,6 +356,30 @@
       where the token-generation path stayed coherent. The mitigation tiles the sequence to
       ≤96 tokens and forces the correct kernel. Observed on this model and precision; I've been
       careful not to claim it generalizes.
+    </p>
+
+    <h2><span class="sec-no">9</span>Evidence and configuration</h2>
+    <p class="dim">
+      Every number in this article was measured on the configuration below. The contribution
+      itself is public: <a href="https://github.com/aws-neuron/neuronx-distributed-inference/pull/173" target="_blank" rel="noopener">aws-neuron/neuronx-distributed-inference&nbsp;PR&nbsp;#173</a>
+      — +58,329 / −300 across 102 files, including the model implementation, the three NKI
+      kernels, the hybrid cache manager, the vLLM serving path, and the validation scripts the
+      benchmarks below were run from.
+    </p>
+    <div class="fig-panel" style="font-family:var(--mono); font-size:13px; line-height:1.85; color:var(--ink-2)">
+      <span style="color:var(--ink)">Hardware</span> &nbsp;trn2.3xlarge · Trainium2 · TP=4 · LNC=2 · 96 GiB HBM in 4×24 GiB banks<br>
+      <span style="color:var(--ink)">Software</span> &nbsp;Neuron SDK 2.29 · NxDI 0.9.17334 · neuronx-cc 2.24.5133 · NKI 0.3.0<br>
+      <span style="color:var(--ink)">Frameworks</span> &nbsp;PyTorch 2.9.1 · Transformers 4.57.6 · vLLM v1 serving path<br>
+      <span style="color:var(--ink)">Model</span> &nbsp;Qwen 3.6-27B · 64 layers (48 GDN + 16 GQA) · hidden 5,120 · GQA 24q/4kv · head_dim 256<br>
+      <span style="color:var(--ink)">Precision</span> &nbsp;selective FP8 weights · BF16 KV + LM head · FP32 DeltaNet recurrent state<br>
+      <span style="color:var(--ink)">Batching</span> &nbsp;batch 1 throughout · continuous batching not validated at long context
+    </div>
+    <p class="dim">
+      Correctness evidence is checked into the same tree: 57 CPU unit tests across config,
+      weight conversion, hybrid cache and decay; eight device integration categories; prefix-cache
+      exactness gates; and the Hugging Face greedy-decode comparison behind the 97.5% figure.
+      Prefill and decode benchmarks come from the validation scripts in the PR, run against the
+      artifact identified in each caption — figures from different artifacts are never combined.
     </p>
 
     <div class="next-article">
