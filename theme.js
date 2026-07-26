@@ -10,7 +10,7 @@
     if (!btn) return;
     function render() {
       var t = document.documentElement.getAttribute("data-theme");
-      btn.textContent = t === "dark" ? "☀" : "☾";
+      btn.textContent = t === "dark" ? "light" : "dark";
       btn.setAttribute("aria-label", t === "dark" ? "Switch to light mode" : "Switch to dark mode");
     }
     btn.addEventListener("click", function () {

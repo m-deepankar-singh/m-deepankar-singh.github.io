@@ -14,10 +14,9 @@
   <div class="nav-inner">
     <a class="nav-name" href="index.html">M Deepankar Singh</a>
     <div class="nav-links">
-      <a href="index.html">Home</a>
       <a href="work.html" class="active">Work</a>
       <a href="about.html">About</a>
-      <button id="theme-toggle" type="button" aria-label="Toggle theme">☾</button>
+      <button id="theme-toggle" type="button">dark</button>
     </div>
   </div>
 </nav>
@@ -25,92 +24,53 @@
 <main>
   <div class="wrap">
 
-    <div class="section">
-      <h1>Work</h1>
+    <h1>Work</h1>
+
+    <div class="entry">
+      <h3><a href="https://github.com/aws-neuron/neuronx-distributed-inference/pull/173" target="_blank" rel="noopener">AWS Neuron NxDI — PR #173</a></h3><span class="meta">lead author, upstream</span>
+      <p>
+        Qwen 3.6-27B hybrid (DeltaNet + GQA) serving on Trainium — no prior reference existed.
+        Three custom NKI kernels, <b>18× TTFT speedup</b>, <b>256K context</b> via selective FP8, ~57K LOC.
+      </p>
     </div>
 
-    <div class="section">
-      <div class="item">
-        <div class="item-head">
-          <h3>AWS Neuron NxDI — PR #173</h3>
-          <span class="item-meta">lead author · upstream</span>
-        </div>
-        <p>
-          Qwen 3.6-27B hybrid (DeltaNet + GQA) serving on Trainium — no prior reference existed.
-          Three custom NKI kernels, cold TTFT ↓3.8×, warm TTFT ↓18×, 256K context via selective FP8.
-        </p>
-        <div class="tags">
-          <span class="tag">NKI kernels</span><span class="tag">vLLM</span><span class="tag">FP8</span><span class="tag">~57K LOC</span>
-        </div>
-        <div class="links">
-          <a href="https://github.com/aws-neuron/neuronx-distributed-inference/pull/173" target="_blank" rel="noopener">View PR →</a>
-        </div>
-      </div>
-
-      <div class="item">
-        <div class="item-head">
-          <h3>GGUF → Safetensors + FP8 Serving</h3>
-          <span class="item-meta">open source</span>
-        </div>
-        <p>
-          Reverse-engineered llama.cpp's weight transforms to unlock vLLM serving for a GGUF-only 27B model.
-          135–185 tok/s at 262K context. ~2,200 Hugging Face downloads in week one.
-        </p>
-        <div class="tags">
-          <span class="tag">quantization</span><span class="tag">speculative decoding</span>
-        </div>
-      </div>
-
-      <div class="item">
-        <div class="item-head">
-          <h3>INFER — Multi-Tenant Inference Platform</h3>
-          <span class="item-meta">solo builder</span>
-        </div>
-        <p>
-          Serverless GPU platform: models sleep in pinned RAM at ~3% of GPU cost, wake in ~1s.
-          40ms warm TTFT, tested Spot-interruption failover.
-        </p>
-        <div class="tags">
-          <span class="tag">vLLM sleep mode</span><span class="tag">EC2 Spot</span>
-        </div>
-      </div>
-
-      <div class="item">
-        <div class="item-head">
-          <h3>Dual-Model Co-location — Blackwell</h3>
-          <span class="item-meta">nvidia</span>
-        </div>
-        <p>
-          27B dense + 35B MoE on one RTX Pro 6000 at NVFP4 via MPS, with use-case-based routing.
-        </p>
-        <div class="tags">
-          <span class="tag">NVFP4</span><span class="tag">MPS</span>
-        </div>
-      </div>
-
-      <div class="item">
-        <div class="item-head">
-          <h3>MTP Speculative Decoding — Trainium</h3>
-          <span class="item-meta">port</span>
-        </div>
-        <p>
-          ~2× decode throughput, token-ID match against baseline.
-        </p>
-        <div class="tags">
-          <span class="tag">speculative decoding</span>
-        </div>
-      </div>
+    <div class="entry">
+      <h3>GGUF → Safetensors + FP8 Serving</h3><span class="meta">open source</span>
+      <p>
+        Reverse-engineered llama.cpp's weight transforms to unlock vLLM serving for a GGUF-only 27B model.
+        <b>135–185 tok/s</b> at 262K context; <b>~2,200 Hugging Face downloads</b> in week one.
+      </p>
     </div>
 
-    <p class="next"><a href="about.html">About →</a></p>
+    <div class="entry">
+      <h3>INFER — Multi-Tenant Inference Platform</h3><span class="meta">solo builder</span>
+      <p>
+        Serverless GPU platform: models sleep in pinned RAM at ~3% of GPU cost and wake in <b>~1 second</b>.
+        40ms warm TTFT, tested Spot-interruption failover.
+      </p>
+    </div>
+
+    <div class="entry">
+      <h3>Dual-Model Co-location on Blackwell</h3><span class="meta">nvidia</span>
+      <p>
+        27B dense + 35B MoE on one RTX Pro 6000 at NVFP4 via MPS, with use-case-based routing.
+      </p>
+    </div>
+
+    <div class="entry">
+      <h3>MTP Speculative Decoding — Trainium</h3><span class="meta">port</span>
+      <p>
+        <b>~2× decode throughput</b>, token-ID match against baseline.
+      </p>
+    </div>
 
   </div>
 </main>
 
 <footer>
   <div class="wrap">
-    <span>© 2026 M Deepankar Singh</span>
-    <span><a href="mailto:singh.deepankar39@gmail.com">Email</a> · <a href="https://github.com/m-deepankar-singh" target="_blank" rel="noopener">GitHub</a> · <a href="https://linkedin.com/in/m-deepankar-singh" target="_blank" rel="noopener">LinkedIn</a></span>
+    <span><a href="about.html">About →</a></span>
+    <span>© 2026</span>
   </div>
 </footer>
 
