@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serving Kimi K3, and measuring the attention it runs on — M Deepankar Singh</title>
+<meta name="description" content="Case study: what it actually takes to serve Kimi K3, plus an independent measurement of Kimi Delta Attention against a parameter-matched full-attention control — 2.08× decode at 262K, 6× KV cache density.">
+
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="M Deepankar Singh — Inference Systems">
+<meta property="og:url" content="https://m-deepankar-singh.github.io/kimi-kda.html">
+<meta property="og:title" content="What it actually takes to serve Kimi K3 — and what its attention does on hardware you can rent">
+<meta property="og:description" content="An independent measurement of Kimi Delta Attention against a parameter-matched full-attention control: 2.08× decode advantage at 262K context, 6× more context per byte of KV cache.">
+<meta property="og:image" content="https://m-deepankar-singh.github.io/tweet-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="What it actually takes to serve Kimi K3 — and what its attention does on hardware you can rent">
+<meta name="twitter:description" content="An independent measurement of Kimi Delta Attention against a parameter-matched full-attention control: 2.08× decode advantage at 262K context, 6× more context per byte of KV cache.">
+<meta name="twitter:image" content="https://m-deepankar-singh.github.io/tweet-card.png">
+
+<link rel="stylesheet" href="styles.css">
+<script src="theme.js"></script>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="name" href="index.html">M&nbsp;Deepankar&nbsp;Singh</a>
+    <nav>
+      <a href="index.html">Index</a>
+      <a href="about.html">About</a>
+      <button id="theme-toggle" type="button">Dark</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <div class="article-kicker"><span class="no">Case study № 3</span> · Long-context inference</div>
+    <h1>What it actually takes to serve Kimi K3 — and what its attention does on hardware you can rent</h1>
+    <div class="article-meta">
+      27 July 2026 · 4× RTX PRO 6000 Blackwell · vLLM 0.25.1 · TP=2 · batch 1
+    </div>
+
+    <p class="abstract">
+      K3's weights drop in a few hours. The self-host guides went up before them. This piece does two things:
+      answers the hosting question with arithmetic and primary sources instead of confidence, and
+      then measures the thing that actually makes K3 interesting — its attention — using the 48B
+      model Moonshot shipped on the same architecture. <b>I did not run K3. Nobody outside a
+      handful of labs has.</b>
+    </p>
+
+    <div class="glance">
+      <div class="glance-hd">Measured — Kimi Delta Attention vs. parameter-matched full attention</div>
+      <dl>
+        <div><dt>2.08×</dt><dd>faster decode at 262K context<br>6.94 ms vs 14.45 ms TPOT</dd></div>
+        <div><dt>6.0×</dt><dd>more context per byte of KV cache<br>15.9 vs 96.0 KiB/token</dd></div>
+        <div><dt>31% vs 150%</dt><dd>latency growth across a 256×<br>increase in context length</dd></div>
+        <div><dt>96.01 vs 96.0</dt><dd>control's measured KiB/token against<br>its config-derived value</dd></div>
+      </dl>
+    </div>
+
+    <h2><span class="sec-no">1</span>The frame</h2>
+    <p>
+      At least one published guide describes a model that does not exist: 594 GB of weights, 128K
+      context, Apache 2.0, launch with <code>--max-model-len 131072</code>. Against Moonshot's own
+      announcement the context window is <strong>1,048,576 tokens</strong>, the license terms are
+      <strong>not published at all</strong>, and 594 GB is arithmetically impossible — 2.8 trillion
+      parameters at MXFP4's four bits is about <strong>1.4 TB</strong>, and 594 GB would imply
+      roughly 1.7 bits per parameter.
+    </p>
+    <p>
+      That is the state of the coverage: written against a countdown timer, not against weights.
+    </p>
+    <p>
+      So this piece does two things. First, the hosting question answered with arithmetic and
+      primary sources. Second — because the interesting thing about K3 is not its size but its
+      <strong>attention</strong> — an actual measurement of that attention mechanism, on named
+      hardware, using the 48B model Moonshot shipped on the same architecture.
+    </p>
+    <p class="dim">
+      Anyone publishing K3 throughput before the weights are public should be asked what they ran it on.
+    </p>
+
+    <h2><span class="sec-no">2</span>Part 1 — What you need to serve K3</h2>
+
+    <h3>The memory floor</h3>
+    <div class="tbl spec">
+      <table>
+        <tr><td>Total parameters</td><td>2.8T, 16 of 896 experts active</td></tr>
+        <tr><td>Context</td><td>1M tokens</td></tr>
+        <tr><td>Attention</td><td>Kimi Delta Attention (hybrid linear) + Attention Residuals, Stable LatentMoE</td></tr>
+        <tr><td>Release format</td><td>MXFP4 weights, MXFP8 activations — <b>per vLLM's preview post, not per Moonshot</b></td></tr>
+        <tr><td>Weights at 4 bits</td><td><b>~1.4 TB</b> — derived (2.8T × 0.5 bytes), not a published figure</td></tr>
+        <tr><td>Plus</td><td>KV/state cache, activations, and MoE routing overhead on top</td></tr>
+      </table>
+    </div>
+    <p>
+      Worth being precise about the provenance, because every guide states it as fact. Moonshot's
+      own K3 quickstart page gives the parameter count, the expert counts, the 1M context and the
+      architecture — and states <strong>no weight format, no license terms, and no hardware
+      requirements at all</strong>. The MXFP4/MXFP8 figure comes from vLLM's integration post. The
+      1.4 TB above is arithmetic on top of vLLM's number, which means it inherits vLLM's
+      assumption. I would rather say that than round it into a spec.
+    </p>
+    <p>
+      Moonshot's own deployment guidance is "<strong>64 or more accelerators</strong>." The
+      eight-node figure circulating in the guides is somebody's gloss, not a vendor number. vLLM's
+      preview post says their validation ran on a <strong>16-GPU DP16 + EP16</strong>
+      configuration.
+    </p>
+
+    <h3>Why the obvious instances are the wrong instances</h3>
+    <p>
+      <strong>H100 has no native FP4.</strong> Serving MXFP4 weights there means dequantising to
+      FP8 or BF16, which makes the memory picture <em>worse</em> than the 1.4 TB baseline, not
+      better. At 640 GB per 8×H100 node you are looking at four-plus nodes, for a model whose
+      native format the silicon cannot execute.
+    </p>
+    <p>
+      <strong>Blackwell is the right architecture class</strong> — it has native FP4 — but the
+      workstation-class Blackwell parts are not enough of it. Eight RTX PRO 6000 Blackwell Server
+      Edition at 96 GB each is <strong>768 GB</strong>, about half the floor. Two such nodes clears
+      the arithmetic and fails the topology: these GPUs talk over <strong>GPUDirect P2P on
+      PCIe</strong>, not NVLink, with EFA between nodes. An 896-expert MoE with 16 active is an
+      all-to-all-heavy workload, and all-to-all over PCIe is the worst case for it.
+    </p>
+    <p>
+      That topology limit is not speculative. On the node used for Part 2, vLLM's custom all-reduce
+      kernel crashed outright — <code>custom_all_reduce.cuh:455 'invalid argument'</code> — and
+      both servers had to fall back to NCCL via <code>--disable-custom-all-reduce</code>. That is a
+      <em>two-GPU</em> collective on a <em>single</em> node. Scaling an all-to-all MoE across a
+      PCIe fabric is a harder version of the problem that already broke here.
+    </p>
+    <p>
+      That leaves NVL-class Blackwell in quantity — which is to say, the 64+ accelerators Moonshot
+      said, which is to say, not a thing you rent on a card.
+    </p>
+
+    <h3>What the software supports today</h3>
+    <p>
+      From vLLM's own preview post, not from a blog that read it. <strong>Integrated:</strong> KDA
+      prefill and decode kernels, fine-grained prefix caching for hybrid attention, Attention
+      Residuals kernels, an optimised MLA module for prefill/decode disaggregation, MXFP4 MoE
+      execution via TRTLLM-Gen and DeepGEMM paths, multimodal, tool calling, structured output.
+    </p>
+    <p>
+      <strong>Still in progress at time of writing:</strong> KDA prefill backend selection and
+      numerical validation, end-to-end serving semantics validation, disaggregated and offload
+      scenarios, AMD ROCm tuning. No required version is stated. No launch command is published. No
+      throughput number appears anywhere in it.
+    </p>
+    <p>
+      Also absent, and worth noting if you care about serving economics: <strong>no speculative
+      decoding, no MTP, no DFlash path.</strong> The tooling around this architecture is younger
+      than the architecture.
+    </p>
+
+    <h3>The honest summary</h3>
+    <p>
+      You cannot serve K3 on one node of anything currently rentable by the hour. If you have 64+
+      NVL-class Blackwell accelerators, vLLM has a preview path and is explicit that parts of it
+      are still being validated. If you do not, the practical answer today is an API.
+    </p>
+
+    <h2><span class="sec-no">3</span>Part 2 — But you <em>can</em> measure the attention</h2>
+    <p>
+      K3's most consequential design choice is not its parameter count. It is <strong>Kimi Delta
+      Attention</strong> — a linear-attention mechanism hybridised with periodic full attention.
+      And that is testable, because Moonshot shipped
+      <code>Kimi-Linear-48B-A3B-Instruct</code>: 48B total, 3B active, a <strong>3:1
+      KDA-to-global-MLA</strong> hybrid, MIT, 98.3 GB of BF16 weights across 20 shards. Same
+      mechanism, same ratio, one node.
+    </p>
+    <p>
+      KDA is described by its authors as extending Gated DeltaNet with a finer-grained gating
+      mechanism. The interesting property of a linear-attention hybrid is never the headline
+      throughput — it is what the <em>shape</em> of the latency curve tells you about where state
+      lives.
+    </p>
+
+    <h3>What the paper claims, and the part everyone skips</h3>
+    <p>
+      Two headline numbers. Figure 1b: <strong>6.3× faster TPOT — 1.84 ms versus 11.48 ms at 1M
+      tokens</strong> — against MLA. Figure 1a: <strong>3.98× acceleration</strong> on RULER at
+      128K, at higher quality (84.3 vs 81.3). The model card rounds 6.3× to 6×.
+    </p>
+    <p>
+      Credit where due, the baseline is fair: the paper states all compared models use the same
+      48B/3B setting with the same layer and head counts, so it is a controlled architectural
+      comparison, not a convenient product matchup.
+    </p>
+    <p>
+      Here is what I could not find in the paper, the repo, or the model card: <strong>what
+      hardware any of it ran on.</strong> No GPU type, no node count. There is also a wrinkle in
+      the paper's own text — the 6.3× caption attributes part of the gain to enabling larger
+      batches, while Figure 7b states batch size 1 was used.
+    </p>
+    <p>
+      That is not an accusation. It is a gap, and it is the gap this fills.
+    </p>
+
+    <h2><span class="sec-no">4</span>Method</h2>
+    <p>
+      Four <strong>NVIDIA RTX PRO 6000 Blackwell Server Edition</strong> GPUs on one node: 96 GB
+      GDDR7 each, <strong>1,597 GB/s</strong> memory bandwidth, GPUDirect P2P over PCIe, native
+      FP4.
+    </p>
+    <p>
+      Two vLLM servers, <strong>TP=2 each</strong>, on disjoint GPU pairs — KDA on GPUs 0,1 and the
+      control on GPUs 2,3 — so both models see the same silicon, driver and kernels. TP=2 rather
+      than TP=4 deliberately: tensor parallelism all-reduces on every decode step, that collective
+      crosses PCIe rather than NVLink here, and TPOT is the exact quantity being measured. Four-way
+      collective traffic would have been measuring the interconnect.
+    </p>
+    <div class="tbl spec">
+      <table>
+        <tr><td>KDA</td><td><code>moonshotai/Kimi-Linear-48B-A3B-Instruct</code> — 48B total / 3B active, 3:1 KDA-to-global-MLA, BF16, 98.3 GB</td></tr>
+        <tr><td>Control</td><td><code>Qwen/Qwen3-30B-A3B-Instruct-2507</code> — 30.5B total / <b>3.3B activated</b>, 48 layers, 128 experts with 8 active, GQA with 32 Q heads and 4 KV heads. Conventional full attention.</td></tr>
+      </table>
+    </div>
+    <p>
+      Matching <em>active</em> parameters — 3.3B against 3B — is the whole point. A 48B-vs-7B
+      comparison measures model size and calls it attention.
+    </p>
+    <p>
+      Both at <code>--max-model-len 262144</code> and <code>--disable-custom-all-reduce</code>.
+      That ceiling is the control's <strong>native</strong> context. It could have been pushed
+      higher with YaRN, but a rope-extended baseline against a natively-1M model is unfair in a
+      direction that happens to flatter the headline.
+    </p>
+    <p>
+      Prompt sweep at 1K / 4K / 16K / 64K / 128K / 262K, fixed 128-token decode budget, streaming
+      so TTFT is real time-to-first-token, median of three after a discarded warm-up. Batch 1. The
+      two models were swept sequentially, not concurrently, so neither contended with the other for
+      PCIe or host bandwidth. The 262K point uses a prompt of <strong>262,016</strong> tokens,
+      because prompt plus the 128-token output budget has to fit inside
+      <code>max_model_len</code> — the first attempt at a flat 262,144 was rejected with an HTTP
+      400, correctly.
+    </p>
+
+    <h3>Three parity details I am not going to bury</h3>
+    <p>
+      <strong>The memory-utilisation figures differ, and in the control's favour.</strong> KDA runs
+      at <code>--gpu-memory-utilization 0.80</code>, the control at <code>0.90</code>. This was not
+      a choice; the KDA server OOMs at 0.90 and again at 0.85. vLLM's memory profiler
+      underestimates the KDA recurrent-state allocation — a ~7.38 GiB block lands <em>after</em>
+      the KV budget has already been committed. So the faster model here is the one running on the
+      smaller memory budget. If that biases anything, it biases against the result being reported.
+    </p>
+    <p>
+      <strong>Prefix caching had to be forced off on the control.</strong> vLLM auto-disables
+      prefix caching for the hybrid KDA model but leaves it enabled for Qwen. Since the harness
+      sends the same prompt three times per point, the control's second and third repeats would
+      have hit the prefix cache and reported a near-zero TTFT — a silent, entirely invisible rig in
+      the control's favour. The control was relaunched with
+      <code>--no-enable-prefix-caching</code> and both flags were verified in the serve logs before
+      any measurement was taken. This is the single easiest way to accidentally publish a wrong
+      number in this comparison, and I nearly did.
+    </p>
+    <p>
+      <strong>An unrelated process was resident on all four GPUs</strong>, holding about 552 MiB
+      per card and idle throughout. It is symmetric across both models and small relative to 96 GB,
+      but it is there, and it is part of why the KDA server needed the lower utilisation ceiling.
+    </p>
+
+    <h3>Versions</h3>
+    <p>
+      The KDA path is young and this is Blackwell-class silicon new enough that a kernel fallback
+      is a live risk — a fallback still <em>runs</em>, just slowly, and nothing in the output would
+      tell you.
+    </p>
+    <div class="tbl spec">
+      <table>
+        <tr><td>Device compute capability</td><td><b>(12, 0)</b> — measured via <code>torch.cuda.get_device_capability()</code>, not read off a spec page</td></tr>
+        <tr><td>Driver</td><td>595.71.05</td></tr>
+        <tr><td>Kernel</td><td>6.17.0-1019-aws</td></tr>
+        <tr><td>vLLM</td><td>0.25.1</td></tr>
+        <tr><td>torch</td><td>2.11.0+cu130 (CUDA 13.0)</td></tr>
+        <tr><td>transformers</td><td>5.14.1</td></tr>
+        <tr><td>fla-core</td><td>0.5.1</td></tr>
+        <tr><td>triton</td><td>3.6.0</td></tr>
+        <tr><td>Python</td><td>3.12</td></tr>
+      </table>
+    </div>
+    <p>
+      <strong>The kernel-fallback gate passed.</strong> The serve log shows TRITON_MLA for decode
+      and FLASH_ATTN MLA for prefill on the global-attention layers, and no reference, naive or
+      fallback path on the KDA layers. Two warnings are worth stating rather than hiding.
+      <code>SymmMemCommunicator</code> is unsupported at compute capability 12.0, so both models
+      fall back to NCCL — symmetric, no effect on the comparison. And vLLM warns that Kimi ships a
+      <strong>slow tokenizer</strong>; tokenisation happens inside TTFT, which matters for exactly
+      one data point below.
+    </p>
+
+    <h3>The bandwidth angle, which is why this is more interesting than an H100</h3>
+    <p>
+      An RTX PRO 6000 Blackwell has <strong>1,597 GB/s</strong> of memory bandwidth. An H100 SXM
+      has about <strong>3,350 GB/s</strong> of HBM3. Roughly half. (The PCIe H100 is lower, ~2
+      TB/s; the SXM part is the fair comparison.)
+    </p>
+    <p>
+      Decode is bandwidth-bound, so ordinarily that is a straightforward penalty. But it should not
+      be an <em>equal</em> penalty. A full-attention model re-reads a KV cache that grows linearly
+      with context, so it pays that bandwidth cost on every token and the cost grows with the
+      prompt. A linear-attention layer carries fixed-size state, so it should barely notice.
+    </p>
+    <p>
+      Which means lower-bandwidth silicon should <em>widen</em> the gap between the two
+      architectures rather than narrow it — and if that holds, the practical conclusion is the
+      opposite of the usual advice: linear-attention hybrids are the models that tolerate cheap
+      inference silicon.
+    </p>
+    <p>I have not seen anyone publish that comparison. Here it is.</p>
+
+    <h2><span class="sec-no">5</span>What it measured</h2>
+
+    <h3>Decode latency against context length</h3>
+    <div class="tbl">
+      <table>
+        <tr><th>Prompt tokens</th><th>KDA TPOT</th><th>Control TPOT</th><th>KDA advantage</th></tr>
+        <tr><td>1,024</td><td>5.28 ms</td><td>5.78 ms</td><td>1.09×</td></tr>
+        <tr><td>4,096</td><td>5.30 ms</td><td>5.81 ms</td><td>1.10×</td></tr>
+        <tr><td>16,384</td><td>5.41 ms</td><td>6.15 ms</td><td>1.14×</td></tr>
+        <tr><td>65,536</td><td>5.56 ms</td><td>7.94 ms</td><td>1.43×</td></tr>
+        <tr><td>131,072</td><td>5.90 ms</td><td>10.03 ms</td><td>1.70×</td></tr>
+        <tr><td>262,016</td><td>6.94 ms</td><td>14.45 ms</td><td><b>2.08×</b></td></tr>
+      </table>
+    </div>
+    <p>
+      The number to look at is not the absolute TPOT. It is the <strong>slope</strong>.
+    </p>
+    <div class="pull">
+      <span class="big">31% vs 150%</span>
+      <span class="cap">per-token latency growth across a 256× context increase</span>
+    </div>
+    <p>
+      Across a 256× increase in context, KDA's per-token latency rises <strong>31%</strong> — from
+      5.28 ms to 6.94 ms. The control's rises <strong>150%</strong>, from 5.78 ms to 14.45 ms.
+      Restricted to the more commonly quoted 128K ceiling, it is <strong>+11.7% against
+      +73.5%</strong>.
+    </p>
+    <p>
+      That flatness is an architectural signature rather than a speed result. It is what fixed-size
+      recurrent state looks like from the outside: the per-token work stops depending on how much
+      context precedes it, so the curve goes flat and stays flat. The full-attention control has to
+      re-read a cache that grows with every token it has already seen, and its curve shows exactly
+      that.
+    </p>
+    <p>
+      It also means the headline ratio is not a fixed property of the architecture. It is a
+      function of how much context you actually use. At 1K the two models are within 10% of each
+      other and the attention mechanism is close to irrelevant. Anyone quoting a single speedup
+      number for linear attention without naming a context length is quoting a number about
+      nothing.
+    </p>
+
+    <h3>Time to first token</h3>
+    <div class="tbl">
+      <table>
+        <tr><th>Prompt tokens</th><th>KDA TTFT</th><th>Control TTFT</th><th>KDA advantage</th></tr>
+        <tr><td>1,024</td><td>0.081 s</td><td>0.050 s</td><td>0.62× — control wins</td></tr>
+        <tr><td>4,096</td><td>0.137 s</td><td>0.145 s</td><td>1.06×</td></tr>
+        <tr><td>16,384</td><td>0.498 s</td><td>0.676 s</td><td>1.36×</td></tr>
+        <tr><td>65,536</td><td>2.373 s</td><td>4.780 s</td><td>2.01×</td></tr>
+        <tr><td>131,072</td><td>5.876 s</td><td>15.204 s</td><td>2.59×</td></tr>
+        <tr><td>262,016</td><td>16.304 s</td><td>53.472 s</td><td><b>3.28×</b></td></tr>
+      </table>
+    </div>
+    <p>
+      The control wins at 1K and only at 1K. That is not a prefill-architecture result — it is the
+      slow tokenizer Kimi ships, and tokenisation sits inside TTFT. At 1,024 tokens the tokeniser
+      is a meaningful fraction of an 81 ms measurement; by 4K the prefill work dominates and the
+      ordering flips permanently. Reporting it as measured rather than quietly starting the table
+      at 4K, but no architectural claim should be read into it.
+    </p>
+
+    <h3>Did the 6.3× hold up?</h3>
+    <p>
+      The honest answer is that <strong>this measurement cannot confirm or refute the paper's
+      6.3×</strong>, and anyone who tells you otherwise is merging two different experiments.
+    </p>
+    <p>
+      The paper's figure is KDA against <strong>MLA at 1M tokens</strong>. This one is KDA against
+      <strong>GQA at 262K</strong>. Different baseline, different context length, different
+      hardware — and the paper does not say what hardware, which is why this piece exists. Three of
+      the four variables differ. Publishing "2.08×, so the 6.3× didn't hold" would be exactly the
+      kind of number-laundering this article was written to complain about.
+    </p>
+    <p>
+      What this measurement does establish, on its own terms: the ratio grows monotonically with
+      context, from 1.09× at 1K to 2.08× at 262K, with no sign of flattening at the top of the
+      range. The paper's claim is that the gap keeps widening out to 1M. Everything measured up to
+      262K is consistent with that shape. That is a weaker statement than a replication and it is
+      the strongest one the data supports.
+    </p>
+
+    <h3>KV cache footprint</h3>
+    <p>
+      This is the one section where the numbers are not mine. vLLM prints its own allocation report
+      at startup, before any benchmark runs, and both servers printed one:
+    </p>
+    <div class="tbl">
+      <table>
+        <tr><th></th><th>KV memory / GPU</th><th>Cache capacity</th><th>Concurrency @ 262K</th></tr>
+        <tr><td><b>KDA</b> (util 0.80)</td><td>21.85 GiB</td><td><b>2,874,255 tokens</b></td><td>10.96×</td></tr>
+        <tr><td><b>Control</b> (util 0.90)</td><td>53.66 GiB</td><td>1,172,112 tokens</td><td>4.47×</td></tr>
+      </table>
+    </div>
+    <p>
+      Read the raw GiB column and you will read it backwards. The control has <strong>more</strong>
+      cache memory, not less — it ran at 0.90 utilisation against KDA's 0.80, for the reason given
+      above: the KDA server OOMs at anything higher. So the model with the smaller memory budget is
+      the one holding 2.45× more tokens.
+    </p>
+    <p>
+      The comparable quantity is <strong>density — bytes of cache per token of context</strong>:
+    </p>
+    <div class="codeblock">
+      <b>Control:</b> 53.66 GiB × 2 GPUs ÷ 1,172,112 tokens = <b>96.0 KiB/token</b><br>
+      <b>KDA:</b> &nbsp;&nbsp;&nbsp;21.85 GiB × 2 GPUs ÷ 2,874,255 tokens = <b>15.9 KiB/token</b>
+    </div>
+    <div class="pull">
+      <span class="big">6.0×</span>
+      <span class="cap">more context per byte of cache — from the server's own accounting</span>
+    </div>
+    <p>
+      The control's figure is worth a second look, because it is checkable from the model card
+      alone. Qwen3-30B-A3B is 48 layers with 4 KV heads of 128 dimensions, at 2 bytes for BF16,
+      times 2 for K and V:
+    </p>
+    <div class="codeblock">
+      2 × 48 layers × 4 KV heads × 128 dim × 2 bytes = 98,304 bytes = <b>96 KiB per token</b><br>
+      vLLM measured <b>96.01</b>.
+    </div>
+    <p>
+      That arithmetic and that allocator agree to within a rounding error, which is the best
+      evidence available that the density frame is the right one and that neither number is an
+      artefact of how the servers were configured.
+    </p>
+    <p>
+      One thing I will not claim from this. Moonshot's stated memory figure is a reduction of
+      <strong>up to</strong> 75% during long-sequence generation, and 6× density is an 83%
+      reduction — but those are not the same measurement and the larger number is not a beat.
+      Moonshot's 75% is the ceiling implied by the 3:1 hybrid ratio <em>within the same model
+      family</em>, KDA hybrid against full MLA at identical config. This is KDA against a different
+      model's GQA, and GQA with 4 KV heads is simply a fatter cache than MLA. The two figures
+      measure different comparisons and should not be set against each other.
+    </p>
+
+    <h3>Context ceiling</h3>
+    <p>
+      <strong>Both models reached 262K.</strong> The control allocated and served its full native
+      262,144-token context without difficulty, so there is no capability asymmetry to report — the
+      2.08× is measured at the control's own maximum, on equal footing, which is the cleaner result
+      anyway.
+    </p>
+    <p>
+      Stating this explicitly because the tempting version of this section is the one where the
+      baseline falls over and the story writes itself. It didn't. Qwen3-30B-A3B served 262K fine.
+    </p>
+
+    <h3>One thing that is not a benchmark result but is worth your time</h3>
+    <p>
+      Serving a hybrid-attention model is rougher around the edges than serving a GQA model. The
+      KDA server OOM'd twice at utilisation settings the control handled without complaint, because
+      vLLM's profiler does not yet account for the recurrent-state allocation. The custom
+      all-reduce kernel crashed on this topology. The tokenizer is slow enough to be visible in
+      short-context TTFT. None of this is fatal and all of it is fixable, but if you are budgeting
+      time to bring one of these up, budget more than you would for a conventional model. The
+      architecture is ahead of its tooling.
+    </p>
+
+    <h2><span class="sec-no">6</span>What this does and does not say about K3</h2>
+    <p>
+      It says: the attention mechanism K3 is built on produces, on independent named hardware, a
+      decode curve that is nearly flat where a conventional one is not — 31% latency growth against
+      150% over a 256× context increase — and that this is real and reproducible outside the lab
+      that shipped it.
+    </p>
+    <p>
+      It does not say anything about K3's own numbers. I did not run K3.
+    </p>
+    <p>
+      The honest version of the connection is architectural: if you want to know whether K3's
+      long-context serving story is credible before you commit to 64+ accelerators, the 48B model
+      in the same family, on one node, will tell you more than any spec sheet — and more than any
+      guide written against a countdown timer.
+    </p>
+    <p>
+      When the weights actually open, the follow-up writes itself: publish K3's real
+      <code>config.json</code> against what the guides claimed it would be. That is a measurement
+      anyone can make. K3 throughput is not.
+    </p>
+
+    <h2><span class="sec-no">7</span>What is not validated</h2>
+    <ul class="caveats">
+      <li>Batch 1 only. No concurrency claim.</li>
+      <li>Control is GQA full attention, not MLA. The paper's comparisons use MLA. The two numbers are not comparable and are not compared here.</li>
+      <li>Sweep tops out at 262K, bounded by the control's native context. The paper's 6.3× is at 1M.</li>
+      <li>The two servers ran at different <code>--gpu-memory-utilization</code> (0.80 KDA, 0.90 control) because the KDA server OOMs above 0.80. Disclosed above; it disadvantages the model that won.</li>
+      <li>An idle unrelated process held ~552 MiB on each GPU throughout, symmetric across both models.</li>
+      <li>The KV-cache density figures assume vLLM's per-worker <code>Available KV cache memory</code> line reports per-GPU memory, doubled for TP=2. The control's result matching its config-derived 96 KiB/token to within 0.01 KiB is the check on that assumption.</li>
+      <li>The 6× density figure is KDA against <strong>GQA</strong>, not against MLA, and is therefore not comparable to Moonshot's own "up to 75%" claim, which is a within-family MLA comparison.</li>
+      <li>Quality was not evaluated. This measures serving behaviour, not model output.</li>
+      <li><strong>No K3 measurements of any kind appear in this article.</strong></li>
+      <li>K3 figures come from Moonshot's announcement and vLLM's preview post, not from weights. The 1.4 TB is derived arithmetic, not a published size. Moonshot has not published license terms; anyone telling you K3 is Apache 2.0 or MIT today is guessing.</li>
+      <li>The H100 bandwidth figure used for comparison is a published spec, not a measurement — no H100 was run.</li>
+      <li>One node, one set of software versions, on 27 July 2026.</li>
+    </ul>
+
+    <div class="next-article">
+      <span class="lbl">Previous case study</span><br>
+      <a href="infer.html">INFER: a serverless platform where sleeping models wake in one second</a>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Bengaluru, India</span>
+    <span>© 2026 M Deepankar Singh</span>
+  </div>
+</footer>
+
+</body>
+</html>
